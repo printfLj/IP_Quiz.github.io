@@ -303,12 +303,119 @@
             el.value = val;
         }
 
+        // --- Backend Logic in JS ---
+        function ip2long(ip) {
+            return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
+        }
+
+        function long2ip(long) {
+            return [
+                (long >>> 24) & 255,
+                (long >>> 16) & 255,
+                (long >>> 8) & 255,
+                long & 255
+            ].join('.');
+        }
+
+        function generateForPrefix(prefix) {
+            const hostBits = 32 - prefix;
+            const mask = prefix === 0 ? 0 : (~0 << hostBits) >>> 0;
+
+            let anchorLong, randomBits;
+            if (prefix <= 15) {
+                anchorLong = ip2long("10.0.0.0");
+                randomBits = Math.max(0, prefix - 8);
+            } else if (prefix <= 23) {
+                anchorLong = ip2long("172.16.0.0");
+                randomBits = Math.max(0, prefix - 12);
+            } else {
+                anchorLong = ip2long("192.168.0.0");
+                randomBits = Math.max(0, prefix - 16);
+            }
+
+            const randOffset = randomBits > 0 ? Math.floor(Math.random() * (1 << randomBits)) : 0;
+            const netLong = ((anchorLong + randOffset * Math.pow(2, hostBits)) & mask) >>> 0;
+            return long2ip(netLong);
+        }
+        
+        function calculateSubnets(baseIP, basePrefix, hostRequests) {
+            hostRequests.sort((a, b) => b.count - a.count);
+
+            let currentAddr = ip2long(baseIP);
+            let maxAddr = currentAddr + Math.pow(2, 32 - basePrefix) - 1;
+
+            let results = [];
+            let steps = [];
+            let masksUsed = new Set();
+
+            for (let req of hostRequests) {
+                let needed = req.count;
+                let name = req.name ? req.name.trim() : 'Unnamed';
+                if (name === '') name = 'Unnamed';
+
+                let bitsNeeded = 1;
+                while (Math.pow(2, bitsNeeded) - 2 < needed) {
+                    bitsNeeded++;
+                }
+
+                let newPrefix = 32 - bitsNeeded;
+                let blockSize = Math.pow(2, bitsNeeded);
+                let networkAddr = currentAddr;
+                let broadcastAddr = currentAddr + blockSize - 1;
+                masksUsed.add(newPrefix);
+
+                if (broadcastAddr > maxAddr) {
+                    return {
+                        status: "error",
+                        suggestion: getSuggestion(hostRequests)
+                    };
+                }
+
+                results.push({
+                    name: name,
+                    hosts_required: needed,
+                    prefix: "/" + newPrefix,
+                    network_address: long2ip(networkAddr),
+                    first_usable: long2ip(networkAddr + 1),
+                    last_usable: long2ip(broadcastAddr - 1),
+                    broadcast: long2ip(broadcastAddr),
+                    subnet_mask: long2ip((~0 << (32 - newPrefix)) >>> 0),
+                    total_hosts: blockSize - 2
+                });
+
+                steps.push(`<strong>${name}</strong>: Needed ${needed} hosts &rarr; block size ${blockSize} (/${newPrefix}). Network: ${long2ip(networkAddr)}, Broadcast: ${long2ip(broadcastAddr)}`);
+
+                currentAddr = broadcastAddr + 1;
+            }
+
+            let mode = masksUsed.size === 1 ? "FLSM (Fixed Length)" : "VLSM (Variable Length)";
+
+            return {
+                status: "success",
+                subnets: results,
+                steps: steps,
+                mode: mode
+            };
+        }
+
+        function getSuggestion(hostRequests) {
+            let total = 0;
+            for (let req of hostRequests) {
+                let needed = req.count;
+                let bits = 1;
+                while (Math.pow(2, bits) - 2 < needed) {
+                    bits++;
+                }
+                total += Math.pow(2, bits);
+            }
+            return 32 - Math.ceil(Math.log2(total));
+        }
+
         // --- Network Address ---
-        async function randomizeIP() {
+        function randomizeIP() {
             const prefix = parseInt(document.getElementById('ipv4_prefix').value) || 24;
-            const res = await fetch(`api.php?action=generate&prefix=${prefix}`);
-            const data = await res.json();
-            document.getElementById('ipv4_addr').value = data.ip;
+            const ip = generateForPrefix(prefix);
+            document.getElementById('ipv4_addr').value = ip;
             document.getElementById('ip-error').classList.add('hidden');
         }
 
@@ -366,7 +473,7 @@
         }
 
         // --- IPv4 Calculate ---
-        async function calculateIPv4() {
+        function calculateIPv4() {
             const errEl = document.getElementById('prefix-error');
             const ipErrEl = document.getElementById('ip-error');
             const ipv4Addr = document.getElementById('ipv4_addr').value.trim();
@@ -403,19 +510,7 @@
                 return;
             }
 
-            const res = await fetch('api.php?action=calculate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    base_ip: ipv4Addr,
-                    prefix,
-                    hosts
-                })
-            });
-
-            const data = await res.json();
+            const data = calculateSubnets(ipv4Addr, prefix, hosts);
             const resultsEl = document.getElementById('ipv4-results');
 
             if (data.status === 'success') {
