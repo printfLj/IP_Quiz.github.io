@@ -43,15 +43,7 @@ This is the main interface the user sees. It uses **Tailwind CSS** for styling a
 * **Dynamic Rendering:** Instead of loading a new page, it stays on the same page and uses `.map()` to inject new rows into the HTML table based on the calculation results.
 * **Error Handling:** If the backend returns an "error" (e.g., insufficient space), the JavaScript reveals a hidden alert box and shows the suggested prefix.
 
----
 
-## 5. `Ipv6Helper.php` (The Hexadecimal Logic)
-IPv6 logic is simpler in terms of host bits; it primarily focuses on incrementing the **SLA ID** (the 4th quartet).
-
-* **Hex Conversion:** It uses `dechex()` to turn a normal number (like 1, 2, 3) into Hexadecimal (0, 1, 2... A, B, C).
-* **String Padding:** It uses `str_pad()` to make sure the subnet ID is always 4 characters long (e.g., `000A` instead of just `A`), which is the standard format for IPv6.
-
----
 
 > **Note on Performance:** 
 > The core logic depends on the `ip2long()` and `long2ip()` functions. PHP treats IP addresses as 32-bit integers under the hood, which makes the math much faster and more accurate than trying to manipulate strings like "192.168.1.1".

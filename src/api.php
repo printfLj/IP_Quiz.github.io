@@ -7,13 +7,9 @@ require_once 'IpUtils.php';
 $action = $_GET['action'] ?? '';
 
 if ($action === 'generate') {
-    $prefix = isset($_GET['prefix']) ? (int)$_GET['prefix'] : null;
-    if ($prefix !== null) {
-        $prefix = max(0, min(30, $prefix));
-        echo json_encode(['ip' => IpUtils::generateForPrefix($prefix)]);
-    } else {
-        echo json_encode(['ip' => IpUtils::generateRandomIP($_GET['class'] ?? 'C')]);
-    }
+    $prefix = isset($_GET['prefix']) ? (int)$_GET['prefix'] : 24;
+    $prefix = max(0, min(30, $prefix));
+    echo json_encode(['ip' => IpUtils::generateForPrefix($prefix)]);
     exit;
 }
 

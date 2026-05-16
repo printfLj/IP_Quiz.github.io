@@ -1,21 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VLSM & FLSM Calculator</title>
+    <title>IP Quiz</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        input[readonly] { background-color: #1e293b; color: #94a3b8; cursor: not-allowed; }
+        input[readonly] {
+            background-color: #1e293b;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
 
         /* Smooth fade-in for results */
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-        .fade-in { animation: fadeIn 0.25s ease both; }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.25s ease both;
+        }
 
         /* Table: always scrollable, name column sticky on mobile */
-        .subnet-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        .subnet-table { min-width: 640px; }
+        .subnet-table-wrap {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .subnet-table {
+            min-width: 640px;
+        }
+
         @media (max-width: 639px) {
+
             .subnet-table th:first-child,
             .subnet-table td:first-child {
                 position: sticky;
@@ -26,14 +52,22 @@
         }
 
         /* IPv6 address wraps instead of overflowing */
-        #ipv6-full-result { word-break: break-all; }
+        #ipv6-full-result {
+            word-break: break-all;
+        }
 
         /* Numeric keyboard on mobile for number inputs */
-        input[type=number] { -moz-appearance: textfield; }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
         input[type=number]::-webkit-outer-spin-button,
-        input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+        input[type=number]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+        }
     </style>
 </head>
+
 <body class="bg-slate-950 text-slate-200 min-h-screen p-3 sm:p-6 md:p-10">
     <div class="max-w-5xl mx-auto">
 
@@ -253,18 +287,18 @@
         function switchMode(mode) {
             document.getElementById('section-ipv4').classList.toggle('hidden', mode === 'ipv6');
             document.getElementById('section-ipv6').classList.toggle('hidden', mode === 'ipv4');
-            document.getElementById('btn-ipv4').className = (mode === 'ipv4')
-                ? 'flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md bg-blue-600 text-white font-bold text-sm transition'
-                : 'flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-slate-400 hover:text-white text-sm transition';
-            document.getElementById('btn-ipv6').className = (mode === 'ipv6')
-                ? 'flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md bg-blue-600 text-white font-bold text-sm transition'
-                : 'flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-slate-400 hover:text-white text-sm transition';
+            document.getElementById('btn-ipv4').className = (mode === 'ipv4') ?
+                'flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md bg-blue-600 text-white font-bold text-sm transition' :
+                'flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-slate-400 hover:text-white text-sm transition';
+            document.getElementById('btn-ipv6').className = (mode === 'ipv6') ?
+                'flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md bg-blue-600 text-white font-bold text-sm transition' :
+                'flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-slate-400 hover:text-white text-sm transition';
         }
 
         // --- Prefix sanitization (onblur only — doesn't interrupt mid-typing) ---
         function sanitizePrefix(el) {
             let val = parseInt(el.value) || 24;
-            if (val < 1)  val = 1;
+            if (val < 1) val = 1;
             if (val > 30) val = 30;
             el.value = val;
         }
@@ -272,7 +306,7 @@
         // --- Network Address ---
         async function randomizeIP() {
             const prefix = parseInt(document.getElementById('ipv4_prefix').value) || 24;
-            const res  = await fetch(`api.php?action=generate&prefix=${prefix}`);
+            const res = await fetch(`api.php?action=generate&prefix=${prefix}`);
             const data = await res.json();
             document.getElementById('ipv4_addr').value = data.ip;
             document.getElementById('ip-error').classList.add('hidden');
@@ -282,7 +316,7 @@
         function validateIPAddress(el) {
             const errEl = document.getElementById('ip-error');
             const value = el.value.trim();
-            
+
             if (!value) {
                 errEl.classList.add('hidden');
                 return true;
@@ -333,7 +367,7 @@
 
         // --- IPv4 Calculate ---
         async function calculateIPv4() {
-            const errEl  = document.getElementById('prefix-error');
+            const errEl = document.getElementById('prefix-error');
             const ipErrEl = document.getElementById('ip-error');
             const ipv4Addr = document.getElementById('ipv4_addr').value.trim();
             const prefix = parseInt(document.getElementById('ipv4_prefix').value);
@@ -358,7 +392,7 @@
 
             const hosts = Array.from(document.querySelectorAll('.host-row'))
                 .map(row => ({
-                    name:  row.querySelector('.h-name').value.trim() || 'Unnamed',
+                    name: row.querySelector('.h-name').value.trim() || 'Unnamed',
                     count: parseInt(row.querySelector('.h-count').value) || 0
                 }))
                 .filter(h => h.count > 0);
@@ -369,17 +403,19 @@
                 return;
             }
 
-            const res  = await fetch('api.php?action=calculate', {
-                method:  'POST',
-                headers: {'Content-Type': 'application/json'},
-                body:    JSON.stringify({
+            const res = await fetch('api.php?action=calculate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
                     base_ip: ipv4Addr,
                     prefix,
                     hosts
                 })
             });
 
-            const data      = await res.json();
+            const data = await res.json();
             const resultsEl = document.getElementById('ipv4-results');
 
             if (data.status === 'success') {
@@ -401,11 +437,14 @@
                 `).join('');
                 document.getElementById('steps-list').innerHTML = data.steps
                     .map(s => `<li>${s}</li>`).join('');
-                resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                resultsEl.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
             } else {
-                errEl.innerText = data.suggestion
-                    ? `Hindi Kasya! Use a /${data.suggestion} prefix or larger.`
-                    : (data.message || 'An error occurred.');
+                errEl.innerText = data.suggestion ?
+                    `Hindi Kasya! Use a /${data.suggestion} prefix or larger.` :
+                    (data.message || 'An error occurred.');
                 errEl.classList.remove('hidden');
                 resultsEl.classList.add('hidden');
             }
@@ -415,7 +454,9 @@
         let ipv6ExpectedFull = '';
 
         function generateRandomIpv6Full() {
-            const hextets = Array.from({ length: 8 }, () => {
+            const hextets = Array.from({
+                length: 8
+            }, () => {
                 const value = Math.floor(Math.random() * 0x10000);
                 return value.toString(16).padStart(4, '0');
             });
@@ -503,11 +544,17 @@
                 const input = document.getElementById(`ipv6-hextet-${i}`);
                 const text = input.value.trim();
                 if (!/^[0-9a-fA-F]{1,4}$/.test(text)) {
-                    return { valid: false, message: `Hextet ${i + 1} must be 1-4 hex digits.` };
+                    return {
+                        valid: false,
+                        message: `Hextet ${i + 1} must be 1-4 hex digits.`
+                    };
                 }
                 hextets.push(text.toLowerCase().padStart(4, '0'));
             }
-            return { valid: true, value: hextets.join(':') };
+            return {
+                valid: true,
+                value: hextets.join(':')
+            };
         }
 
         function highlightIpv6Results(correctArray) {
@@ -654,4 +701,5 @@
         };
     </script>
 </body>
+
 </html>
